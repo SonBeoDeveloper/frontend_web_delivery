@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { useDispatch, useSelector } from "react-redux";
+import { getUser } from "../features/auth/authSlice";
 import { getCategories } from "../features/pcategory/pcategorySlice";
 import {
   createProducts,
@@ -14,21 +15,27 @@ import {
   updateAProduct,
   resetState,
 } from "../features/product/productSlice";
+
 let schema = yup.object().shape({
-  name: yup.string().required("name is Required"),
-  description: yup.string().required("Description is Required"),
-  price: yup.number().required("Price is Required"),
-  category: yup.string().required("Category is Required"),
-  images: yup.string().required("Images is Required"),
+  name: yup.string().required("Chưa nhập tên"),
+  description: yup.string().required("Nhập tiêu đề"),
+  price: yup.number().required("Giá sản phẩm chưa nhập"),
+  category: yup.string().required("Danh mục chưa điền"),
+  images: yup.string().required("Ảnh chưa nhập"),
 });
 
 const Addproduct = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  useEffect(() => {
+    dispatch(getCategories());
+    dispatch(getUser());
+  }, []);
   const location = useLocation();
   const getProductId = location.pathname.split("/")[3];
   const catState = useSelector((state) => state.pCategory.pCategories);
   const newProduct = useSelector((state) => state.product);
+  console.log("new:", newProduct);
   const {
     isSuccess,
     isError,
@@ -48,16 +55,14 @@ const Addproduct = () => {
       dispatch(resetState());
     }
   }, [getProductId]);
-  useEffect(() => {
-    dispatch(getCategories());
-  }, []);
+
   useEffect(() => {
     if (isSuccess && createdProduct) {
-      toast.success("Product Added Successfullly!");
+      toast.success("Món ăn đã được thêm thành công!");
     }
     if (isSuccess && updatedAProduct) {
-      toast.success("Product Updated Successfullly!");
-      navigate("/admin/product-list");
+      toast.success("Món ăn đã được sửa thành công!");
+      navigate("/admin/list-product");
     }
     if (isError) {
       toast.error("Something Went Wrong!");
@@ -76,7 +81,8 @@ const Addproduct = () => {
     validationSchema: schema,
     onSubmit: (values) => {
       if (getProductId !== undefined) {
-        const data = { id: getProductId, ProductData: values };
+        const data = { _id: getProductId, productData: values };
+        console.log("update", values);
         dispatch(updateAProduct(data));
         dispatch(resetState());
       } else {
@@ -92,7 +98,7 @@ const Addproduct = () => {
   return (
     <div>
       <h3 className="mb-4 title">
-        {getProductId !== undefined ? "Edit" : "Add"} Product
+        {getProductId !== undefined ? "Sửa" : "Thêm"} đồ ăn
       </h3>
       <div>
         <form
@@ -102,7 +108,7 @@ const Addproduct = () => {
         >
           <CustomInput
             type="text"
-            label="Enter Product name"
+            label="Tên đồ ăn"
             name="name"
             onChng={formik.handleChange("name")}
             onBlr={formik.handleBlur("name")}
@@ -113,12 +119,13 @@ const Addproduct = () => {
             {formik.touched.name && formik.errors.name}
           </div>
 
-          <ReactQuill
-            theme="snow"
+          <CustomInput
+            type="text"
+            label="Tiêu đề"
             name="description"
-            onChange={formik.handleChange("description")}
+            onChng={formik.handleChange("description")}
             onBlr={formik.handleBlur("description")}
-            value={formik.values.description}
+            val={formik.values.description}
             id="description"
           />
           <div className="error">
@@ -126,7 +133,7 @@ const Addproduct = () => {
           </div>
           <CustomInput
             type="number"
-            label="Enter Product Price"
+            label="Giá"
             name="price"
             onChng={formik.handleChange("price")}
             onBlr={formik.handleBlur("price")}
@@ -145,10 +152,10 @@ const Addproduct = () => {
             className="form-control py-3 mb-3"
             id="category"
           >
-            <option value="">Select Category</option>
+            <option value="">Chọn danh mục</option>
             {catState.map((i, j) => {
               return (
-                <option key={j} value={i.name}>
+                <option key={j} value={i._id}>
                   {i.name}
                 </option>
               );
@@ -160,7 +167,7 @@ const Addproduct = () => {
 
           <CustomInput
             type="text"
-            label="Enter images url"
+            label="Nhập ảnh url"
             name="images"
             onChng={formik.handleChange("images")}
             onBlr={formik.handleBlur("images")}
@@ -175,7 +182,7 @@ const Addproduct = () => {
             className="btn btn-success border-0 rounded-3 my-5"
             type="submit"
           >
-            {getProductId !== undefined ? "Edit" : "Add"} Product
+            {getProductId !== undefined ? "Sửa" : "Thêm"} đồ ăn
           </button>
         </form>
       </div>

@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
-import {
-  AiOutlineDashboard,
-  AiOutlineShoppingCart,
-  AiOutlineUser,
-} from "react-icons/ai";
+import { AiOutlineDashboard, AiOutlineShoppingCart } from "react-icons/ai";
 import { RiCouponLine } from "react-icons/ri";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { ImBlog } from "react-icons/im";
-import { IoIosNotifications } from "react-icons/io";
-import { FaClipboardList, FaBloggerB } from "react-icons/fa";
+import {
+  FaClipboardList,
+  FaUser,
+  FaPenNib,
+  FaUserPlus,
+  FaUserFriends,
+} from "react-icons/fa";
 import { BiCategoryAlt } from "react-icons/bi";
 import { Layout, Menu, theme } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getUser } from "../features/auth/authSlice";
+import { getUser, logout } from "../features/auth/authSlice";
 const { Header, Sider, Content } = Layout;
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -28,8 +29,18 @@ const MainLayout = () => {
   const dispatch = useDispatch();
   useEffect(() => {
     dispatch(getUser());
-  }, []);
+  }, [dispatch]);
   const userState = useSelector((state) => state.auth.admin);
+
+  const handleMenuClick = ({ key }) => {
+    if (key === "signout") {
+      dispatch(logout());
+      navigate("");
+    } else {
+      navigate(key);
+    }
+  };
+
   return (
     <Layout /* onContextMenu={(e) => e.preventDefault()} */>
       <Sider trigger={null} collapsible collapsed={collapsed}>
@@ -43,109 +54,122 @@ const MainLayout = () => {
           theme="dark"
           mode="inline"
           defaultSelectedKeys={[""]}
-          onClick={({ key }) => {
-            if (key == "signout") {
-            } else {
-              navigate(key);
-            }
-          }}
-          items={[
-            {
-              key: "",
-              icon: <AiOutlineDashboard className="fs-4" />,
-              label: "Dashboard",
-            },
-            {
-              key: "customers",
-              icon: <AiOutlineUser className="fs-4" />,
-              label: "Customers",
-            },
-            {
-              key: "Catalog",
-              icon: <AiOutlineShoppingCart className="fs-4" />,
-              label: "Catalog",
-              children: [
-                {
-                  key: "product",
-                  icon: <AiOutlineShoppingCart className="fs-4" />,
-                  label: "Add Product",
-                },
-                {
-                  key: "list-product",
-                  icon: <AiOutlineShoppingCart className="fs-4" />,
-                  label: "Product List",
-                },
+          onClick={handleMenuClick}
+        >
+          <Menu.Item key="" icon={<AiOutlineDashboard className="fs-4" />}>
+            Trang chủ
+          </Menu.Item>
 
-                {
-                  key: "category",
-                  icon: <BiCategoryAlt className="fs-4" />,
-                  label: "Category",
-                },
-                {
-                  key: "list-category",
-                  icon: <BiCategoryAlt className="fs-4" />,
-                  label: "Category List",
-                },
-              ],
-            },
-            {
-              key: "orders",
-              icon: <FaClipboardList className="fs-4" />,
-              label: "Orders",
-            },
-            {
-              key: "marketing",
-              icon: <RiCouponLine className="fs-4" />,
-              label: "Marketing",
-              children: [
-                {
-                  key: "coupon",
-                  icon: <ImBlog className="fs-4" />,
-                  label: "Add Coupon",
-                },
-                {
-                  key: "coupon-list",
-                  icon: <RiCouponLine className="fs-4" />,
-                  label: "Coupon List",
-                },
-              ],
-            },
-            {
-              key: "blogs",
-              icon: <FaBloggerB className="fs-4" />,
-              label: "Blogs",
-              children: [
-                {
-                  key: "blog",
-                  icon: <ImBlog className="fs-4" />,
-                  label: "Add Blog",
-                },
-                {
-                  key: "blog-list",
-                  icon: <FaBloggerB className="fs-4" />,
-                  label: "Blog List",
-                },
-                {
-                  key: "blog-category",
-                  icon: <ImBlog className="fs-4" />,
-                  label: "Add Blog Category",
-                },
-                {
-                  key: "blog-category-list",
-                  icon: <FaBloggerB className="fs-4" />,
-                  label: "Blog Category List",
-                },
-              ],
-            },
-            {
-              key: "enquiries",
-              icon: <FaClipboardList className="fs-4" />,
-              label: "Enquiries",
-            },
-          ]}
-        />
+          <Menu.Item key="customers" icon={<FaUserFriends className="fs-4" />}>
+            Khách hàng
+          </Menu.Item>
+          <Menu.Item key="Employee" icon={<FaUserFriends className="fs-4" />}>
+            Nhân viên
+          </Menu.Item>
+          {(userState.role === "admin" || userState.role === "employee") && (
+            <Menu.SubMenu
+              key="Catalog"
+              icon={<AiOutlineShoppingCart className="fs-4" />}
+              title="Danh mục"
+            >
+              {userState.role === "admin" && (
+                <Menu.Item
+                  key="product"
+                  icon={<AiOutlineShoppingCart className="fs-4" />}
+                >
+                  Tạo món ăn
+                </Menu.Item>
+              )}
+              {(userState.role === "admin" ||
+                userState.role === "employee") && (
+                <Menu.Item
+                  key="list-product"
+                  icon={<AiOutlineShoppingCart className="fs-4" />}
+                >
+                  Danh sách món ăn
+                </Menu.Item>
+              )}
+              {userState.role === "admin" && (
+                <Menu.Item
+                  key="category"
+                  icon={<BiCategoryAlt className="fs-4" />}
+                >
+                  Tạo danh mục
+                </Menu.Item>
+              )}
+              {(userState.role === "admin" ||
+                userState.role === "employee") && (
+                <Menu.Item
+                  key="list-category"
+                  icon={<BiCategoryAlt className="fs-4" />}
+                >
+                  Các danh mục
+                </Menu.Item>
+              )}
+            </Menu.SubMenu>
+          )}
+
+          <Menu.Item key="order" icon={<FaClipboardList className="fs-4" />}>
+            Xem đơn hàng chi tiết
+          </Menu.Item>
+          <Menu.Item key="orders" icon={<FaClipboardList className="fs-4" />}>
+            Đơn hàng
+          </Menu.Item>
+          {userState.role === "admin" && (
+            <Menu.SubMenu
+              key="marketing"
+              icon={<RiCouponLine className="fs-4" />}
+              title="Marketing"
+            >
+              <Menu.Item key="coupon" icon={<ImBlog className="fs-4" />}>
+                Tạo phiếu giảm giá
+              </Menu.Item>
+              <Menu.Item
+                key="coupon-list"
+                icon={<RiCouponLine className="fs-4" />}
+              >
+                Phiếu giảm giá
+              </Menu.Item>
+            </Menu.SubMenu>
+          )}
+
+          {/* <Menu.SubMenu
+            key="blogs"
+            icon={<FaBloggerB className="fs-4" />}
+            title="Blogs"
+          >
+            <Menu.Item key="blog" icon={<ImBlog className="fs-4" />}>
+              Add Blog
+            </Menu.Item>
+            <Menu.Item key="blog-list" icon={<FaBloggerB className="fs-4" />}>
+              Blog List
+            </Menu.Item>
+            <Menu.Item key="blog-category" icon={<ImBlog className="fs-4" />}>
+              Add Blog Category
+            </Menu.Item>
+            <Menu.Item
+              key="blog-category-list"
+              icon={<FaBloggerB className="fs-4" />}
+            >
+              Blog Category List
+            </Menu.Item>
+          </Menu.SubMenu> */}
+
+          <Menu.Item key="profile" icon={<FaUser className="fs-4" />}>
+            Thông tin cá nhân
+          </Menu.Item>
+          <Menu.Item key="information" icon={<FaPenNib className="fs-4" />}>
+            Giới thiệu
+          </Menu.Item>
+
+          {userState.role === "admin" && (
+            <Menu.Item key="signup" icon={<FaUserPlus className="fs-4" />}>
+              Đăng ký
+            </Menu.Item>
+          )}
+        </Menu>
       </Sider>
-      <Layout className="site-layout">
+      <Layout className="site-layout" onContextMenu={(e) => e.preventDefault()}>
         <Header
           className="d-flex justify-content-between ps-1 pe-5"
           style={{
@@ -184,9 +208,9 @@ const MainLayout = () => {
                   <Link
                     className="dropdown-item py-1 mb-1"
                     style={{ height: "auto", lineHeight: "20px" }}
-                    to="/"
+                    to="/admin/profile"
                   >
-                    View Profile
+                    Xem thông tin
                   </Link>
                 </li>
                 <li>
@@ -194,8 +218,9 @@ const MainLayout = () => {
                     className="dropdown-item py-1 mb-1"
                     style={{ height: "auto", lineHeight: "20px" }}
                     to="/"
+                    onClick={handleMenuClick}
                   >
-                    Signout
+                    Thoát
                   </Link>
                 </li>
               </div>

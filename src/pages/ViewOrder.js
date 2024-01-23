@@ -1,76 +1,88 @@
 import React, { useEffect } from "react";
-import { Table } from "antd";
+import { Table, Button } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { BiEdit } from "react-icons/bi";
-import { AiFillDelete } from "react-icons/ai";
 import { Link, useLocation } from "react-router-dom";
-import { getOrderByUser } from "../features/auth/authSlice";
+import { getOrderById } from "../features/auth/authSlice";
+import { FileTextOutlined } from "@ant-design/icons";
+import { exportOrdersAction } from "../features/product/productSlice";
+const columns = [
+  {
+    title: "STT",
+    dataIndex: "key",
+  },
+  {
+    title: "Tên món",
+    dataIndex: "name",
+  },
+  {
+    title: "Ảnh",
+    dataIndex: "images",
+  },
+  {
+    title: "Số lượng",
+    dataIndex: "count",
+  },
+  {
+    title: "Giá",
+    dataIndex: "amount",
+  },
+];
 
 const ViewOrder = () => {
   const location = useLocation();
   const userId = location.pathname.split("/")[3];
   const dispatch = useDispatch();
-  console.log(userId);
+
   useEffect(() => {
-    dispatch(getOrderByUser(userId));
-  }, []);
-  const product = useSelector((state) => state.product.products);
-  const orderState = useSelector((state) => state.auth.orderbyuser);
-  const getProductName = (productId) => {
-    const selectedProduct = product.find((p) => p._id === productId);
-    return selectedProduct ? selectedProduct.name : "Product not found";
+    dispatch(getOrderById(userId));
+  }, [dispatch, userId]);
+  const handleDownloadClick = () => {
+    dispatch(exportOrdersAction(userId));
   };
-  const formatDate = (isoDate) => {
-    const date = new Date(isoDate);
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-  };
-  const data = orderState.map((order, index) => ({
+  const orderState = useSelector((state) => state.auth.orderbyId);
+
+  const data = orderState?.products?.map((productItem, index) => ({
     key: index + 1,
-    products: order.products,
-    amount: `${order.paymentIntent.amount}.000 VNĐ`,
-    date: formatDate(order.createdAt),
+    name: productItem.product.name,
+    images: (
+      <img
+        src={productItem.product.images}
+        alt={`Ảnh sản phẩm ${productItem.product.name}`}
+        style={{
+          width: "60px",
+          height: "60px",
+          objectFit: "cover",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      />
+    ),
+    count: productItem.count,
+    amount: `${productItem.product.price}.000 VNĐ`,
   }));
-  const columns = [
-    {
-      title: "STT",
-      dataIndex: "key",
-    },
-    {
-      title: "Tên sản phẩm",
-      dataIndex: "name",
-      render: (text, record) => (
-        <span>
-          {record.products.map((product) => (
-            <div key={product.name}>{getProductName(product.name)}</div>
-          ))}
-        </span>
-      ),
-    },
-    {
-      title: "Số lượng",
-      dataIndex: "count",
-      render: (text, record) => (
-        <span>
-          {record.products.map((product) => (
-            <div key={product.name}>{product.count}.000 VNĐ</div>
-          ))}
-        </span>
-      ),
-    },
-    {
-      title: "Tổng số tiền",
-      dataIndex: "amount",
-    },
-    {
-      title: "Ngày đặt hàng",
-      dataIndex: "date",
-    },
-  ];
-  console.log("data", product);
 
   return (
     <div>
-      <h3 className="mb-4 title">View Order</h3>
+      <div
+        class="header-container"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <h3 className="mb-4 title">Xem chi tiết sản phẩm</h3>
+        <Button
+          style={{ display: "flex", alignItems: "center" }}
+          type="primary"
+          icon={<FileTextOutlined />}
+          onClick={handleDownloadClick}
+        >
+          Xuất excel
+        </Button>
+      </div>
+
       <div>
         <Table columns={columns} dataSource={data} />
       </div>

@@ -1,63 +1,79 @@
 import React, { useEffect } from "react";
-import { BsArrowDownRight, BsArrowUpRight } from "react-icons/bs";
+import { toast } from "react-toastify";
+import { BsArrowDownRight } from "react-icons/bs";
 import { Line, Bar, Column } from "@ant-design/plots";
-import { Table } from "antd";
+import { Table, Button } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { getOrders } from "../features/auth/authSlice";
+import {
+  getOrders,
+  confirmOrder,
+  cancelOrder,
+  getOrdersWait,
+  getrevenueLast7Days,
+} from "../features/auth/authSlice";
+import moment from "moment";
 import { getUsers } from "../features/cutomers/customerSlice";
 import {
   AiOutlineCreditCard,
   AiOutlineUsergroupAdd,
   AiOutlineRise,
 } from "react-icons/ai";
-import { Link } from "react-router-dom";
-import { getProducts } from "../features/product/productSlice";
-const columns = [
-  {
-    title: "STT",
-    dataIndex: "key",
-  },
-  {
-    title: "Tên",
-    dataIndex: "name",
-  },
-  {
-    title: "Tổng số tiền(VNĐ)",
-    dataIndex: "amount",
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-  },
-];
+import { getTopProducts } from "../features/product/productSlice";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
   useEffect(() => {
     dispatch(getOrders());
     dispatch(getUsers());
-    dispatch(getProducts());
-  }, []);
+    dispatch(getrevenueLast7Days());
+    dispatch(getTopProducts());
+    dispatch(getOrdersWait());
+  }, [dispatch]);
   const orderState = useSelector((state) => state.auth.orders);
-  const totalAmount = orderState.reduce(
-    (total, order) => total + order.paymentIntent.amount,
-    0
+  const orderWaitState = useSelector((state) => state.auth.orderwait);
+  const revenueLast7Days = useSelector(
+    (state) => state.auth.RevenueLast7Days.revenueByDay
   );
+  console.log("revanue", revenueLast7Days);
+  const currentYear = new Date().getFullYear();
+  const ordersReceived = orderState.filter(
+    (order) => order.orderStatus === "Đã nhận hàng"
+  );
+
+  const handleConfirm = async (orderId) => {
+    try {
+      await dispatch(confirmOrder(orderId));
+      dispatch(getOrdersWait());
+      toast.success("Xác nhận đơn hàng thành công!");
+    } catch (error) {
+      toast.error("Lỗi gì đó!");
+    }
+  };
+
+  // Xử lý hủy đơn đặt hàng
+  const handleCancel = async (orderId) => {
+    try {
+      await dispatch(cancelOrder(orderId));
+      dispatch(getOrdersWait());
+      toast.success("Hủy đơn hàng thành công!");
+    } catch (error) {
+      toast.error("Lỗi gì đó!");
+    }
+  };
+
   const customerstate = useSelector((state) => state.customer.customers);
   const filteredCustomers = customerstate.filter(
-    (customer) => customer.role !== "admin"
+    (customer) => customer.role !== "admin" && customer.role !== "employee"
   );
 
   const currentDate = new Date();
 
   // Lấy tháng và năm của tháng này
   const currentMonth = currentDate.getMonth() + 1; // Tháng bắt đầu từ 0, cần +1 để có tháng thực tế
-  const currentYear = currentDate.getFullYear();
-
   // Lấy tháng và năm của tháng trước
   const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const lastYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-  const ordersThisMonth = orderState.filter((order) => {
+  const ordersThisMonth = ordersReceived.filter((order) => {
     const orderDate = new Date(order.createdAt);
     return (
       orderDate.getMonth() + 1 === currentMonth &&
@@ -65,7 +81,7 @@ const Dashboard = () => {
     );
   });
 
-  const ordersLastMonth = orderState.filter((order) => {
+  const ordersLastMonth = ordersReceived.filter((order) => {
     const orderDate = new Date(order.createdAt);
     return (
       orderDate.getMonth() + 1 === lastMonth &&
@@ -84,7 +100,10 @@ const Dashboard = () => {
 
   // Tính chênh lệch và phần trăm chênh lệch
   const difference = totalAmountThisMonth - totalAmountLastMonth;
-  const percentageDifference = (difference / totalAmountLastMonth) * 100;
+  const percentageDifference = (
+    (difference / totalAmountLastMonth) *
+    100
+  ).toFixed(2);
 
   const totalCustomers = filteredCustomers.length;
 
@@ -156,14 +175,15 @@ const Dashboard = () => {
       });
     }
   }
-  for (let i = 0; i < orderState.length; i++) {
+  for (let i = 0; i < orderWaitState.length; i++) {
     data1.push({
       key: i + 1,
-      name: orderState[i].orderBy.fullname,
-      amount: orderState[i].paymentIntent.amount,
-      status: orderState[i].orderStatus,
-
-      date: new Date(orderState[i].createdAt).toLocaleString(),
+      orderId: orderWaitState[i]._id,
+      name: orderWaitState[i].orderBy.fullname,
+      amount: orderWaitState[i].paymentIntent.amount,
+      status: orderWaitState[i].orderStatus,
+      createAt: new Date(orderWaitState[i].createdAt).toLocaleString(),
+      address: orderWaitState[i].orderBy.address,
     });
   }
 
@@ -181,7 +201,7 @@ const Dashboard = () => {
     Nov: 0,
     Dec: 0,
   };
-  orderState.forEach((order) => {
+  ordersReceived.forEach((order) => {
     const createdAt = new Date(order.createdAt);
     const month = createdAt.toLocaleString("en-us", { month: "short" });
     const amount = order.paymentIntent.amount;
@@ -223,7 +243,7 @@ const Dashboard = () => {
     },
   };
 
-  const productState = useSelector((state) => state.product.products);
+  const productState = useSelector((state) => state.product.topProduct);
   const data3 = [];
   for (let i = 0; i < productState.length; i++) {
     data3.push({
@@ -251,15 +271,123 @@ const Dashboard = () => {
     minBarWidth: 20,
     maxBarWidth: 20,
   };
+  const columns = [
+    {
+      title: "STT",
+      dataIndex: "key",
+      sorter: (a, b) => a.key - b.key,
+    },
+    {
+      title: "Tên",
+      dataIndex: "name",
+    },
+    {
+      title: "Tổng số tiền",
+      dataIndex: "amount",
+      sorter: (a, b) => b.amount - a.amount,
+      render: (text, record) => `${record.amount.toFixed(1)}00 VNĐ`,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createAt",
+      sorter: (a, b) => {
+        const dateA = moment(a.createAt);
+        const dateB = moment(b.createAt);
+        return dateA.isAfter(dateB) ? 1 : -1;
+      },
+    },
+    {
+      title: "Địa chỉ",
+      dataIndex: "address",
+    },
+    {
+      title: "Hành động",
+      dataIndex: "key",
+      render: (_, record) => (
+        <div>
+          <Button type="primary" onClick={() => handleConfirm(record.orderId)}>
+            Xác nhận
+          </Button>
+          <Button
+            type="text"
+            danger
+            onClick={() => handleCancel(record.orderId)}
+          >
+            Hủy
+          </Button>
+        </div>
+      ),
+    },
+  ];
+  const yesterday = new Date(currentDate);
+  yesterday.setDate(currentDate.getDate() - 1); // Ngày hôm qua
+
+  // Lọc ra các đơn hàng trong ngày hôm nay và ngày hôm qua
+  const ordersToday = ordersReceived.filter((order) => {
+    const orderDate = new Date(order.createdAt);
+    return (
+      orderDate.getDate() === currentDate.getDate() &&
+      orderDate.getMonth() === currentDate.getMonth() &&
+      orderDate.getFullYear() === currentDate.getFullYear()
+    );
+  });
+
+  const ordersYesterday = ordersReceived.filter((order) => {
+    const orderDate = new Date(order.createdAt);
+    return (
+      orderDate.getDate() === yesterday.getDate() &&
+      orderDate.getMonth() === yesterday.getMonth() &&
+      orderDate.getFullYear() === yesterday.getFullYear()
+    );
+  });
+
+  // Tính tổng doanh thu trong ngày hôm nay và ngày hôm qua
+  const totalAmountToday = ordersToday.reduce(
+    (total, order) => total + order.paymentIntent.amount,
+    0
+  );
+
+  const totalAmountYesterday = ordersYesterday.reduce(
+    (total, order) => total + order.paymentIntent.amount,
+    0
+  );
+
+  // Tính chênh lệch và phần trăm chênh lệch
+  const differenceToday = totalAmountToday - totalAmountYesterday;
+  const percentageDifferenceToday = (
+    (differenceToday / totalAmountYesterday) *
+    100
+  ).toFixed(2);
+  const textColor = percentageDifferenceToday >= 0 ? "green" : "red";
+  const Color = difference >= 0 ? "green" : "red";
 
   return (
     <div>
-      <h3 className="mb-4 title">Dashboard</h3>
+      <h3 className="mb-4 title">Trang chủ</h3>
       <div className="d-flex justify-content-between align-items-center gap-3">
         <div className="d-flex justify-content-between align-items-end flex-grow-1 bg-white p-3 roudned-3">
           <div>
-            <p className="desc">Tổng doanh thu bán hàng</p>
-            <h4 className="mb-0 sub-title">{totalAmount}.000 vnđ</h4>
+            <p className="desc">Tổng doanh thu trong ngày</p>
+            <h4 className="mb-0 sub-title">
+              {totalAmountToday.toFixed(1)}00 vnđ
+            </h4>
+          </div>
+          <div className="d-flex flex-column align-items-end">
+            {percentageDifferenceToday >= 0 ? (
+              <h6 style={{ color: textColor }}>
+                <AiOutlineRise />
+                {percentageDifferenceToday}%
+              </h6>
+            ) : (
+              <h6 style={{ color: textColor }}>
+                <BsArrowDownRight />
+                {percentageDifferenceToday}%
+              </h6>
+            )}
           </div>
           <div className="d-flex flex-column align-items-end">
             <AiOutlineCreditCard size={30} />
@@ -267,7 +395,7 @@ const Dashboard = () => {
         </div>
         <div className="d-flex justify-content-between align-items-end flex-grow-1 bg-white p-3 roudned-3">
           <div>
-            <p className="desc">Tổng số lượng khách hàng</p>
+            <p className="desc">Số lượng khách hàng</p>
             <h4 className="mb-0 sub-title">{totalCustomers}</h4>
           </div>
           <div className="d-flex flex-column align-items-end">
@@ -277,18 +405,18 @@ const Dashboard = () => {
         <div className="d-flex justify-content-between align-items-end flex-grow-1 bg-white p-3 roudned-3">
           <div>
             <p className="desc">Doanh thu so với tháng trước</p>
-            <h4 className="mb-0 sub-title">{difference}</h4>
+            <h4 className="mb-0 sub-title">{`${difference.toFixed(
+              1
+            )}00 vnđ`}</h4>
           </div>
           <div className="d-flex flex-column align-items-end">
             {difference >= 0 ? (
-              // Sử dụng icon AiOutlineRise nếu difference lớn hơn hoặc bằng 0
-              <h6 className="green">
+              <h6 style={{ color: Color }}>
                 <AiOutlineRise />
                 {percentageDifference}%
               </h6>
             ) : (
-              // Sử dụng icon BsArrowDownRight nếu difference âm
-              <h6 className="red">
+              <h6 style={{ color: Color }}>
                 <BsArrowDownRight />
                 {percentageDifference}%
               </h6>
@@ -297,20 +425,21 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="mt-4">
-        <h3 className="mb-5 title">Doanh thu hằng năm</h3>
+        <h3 className="mb-5 title">Doanh thu hàng tháng</h3>
         <div>
           <Line {...config} />
         </div>
       </div>
+
       <div className="d-flex" style={{ width: "100%" }}>
         <div className="mt-4 me-4" style={{ width: "50%" }}>
-          <h3 className="mb-5 title">Số lượng khách hàng</h3>
+          <h3 className="mb-5 title">Số lượng người đăng ký</h3>
           <div>
             <Column {...config2} />
           </div>
         </div>
         <div className="mt-4" style={{ width: "50%" }}>
-          <h3 className="mb-5 title">Số sản phẩm đã được bán</h3>
+          <h3 className="mb-5 title">Top 10 món bán chạy trong năm</h3>
           <div>
             <Bar {...config3} />
           </div>
@@ -318,7 +447,7 @@ const Dashboard = () => {
       </div>
 
       <div className="mt-4">
-        <h3 className="mb-5 title">Đơn đặt hàng gần nhất</h3>
+        <h3 className="mb-5 title">Đơn đặt hàng gần đây</h3>
         <div>
           <Table columns={columns} dataSource={data1} />
         </div>

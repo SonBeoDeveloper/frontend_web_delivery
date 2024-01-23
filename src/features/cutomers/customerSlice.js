@@ -11,6 +11,16 @@ export const getUsers = createAsyncThunk(
     }
   }
 );
+export const deleteEmployee = createAsyncThunk(
+  "customer/deleteEmployee",
+  async (id, thunkAPI) => {
+    try {
+      return await customerService.deleteEmployee(id);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
 const initialState = {
   customers: [],
   isError: false,
@@ -34,6 +44,21 @@ export const customerSlice = createSlice({
         state.customers = action.payload;
       })
       .addCase(getUsers.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+        state.message = action.error;
+      })
+      .addCase(deleteEmployee.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteEmployee.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = true;
+        state.deletedEmployee = action.payload;
+      })
+      .addCase(deleteEmployee.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.isSuccess = false;

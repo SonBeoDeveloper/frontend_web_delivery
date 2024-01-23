@@ -12,8 +12,8 @@ import {
   updateAProductCategory,
 } from "../features/pcategory/pcategorySlice";
 let schema = yup.object().shape({
-  name: yup.string().required("Category Name is Required"),
-  image: yup.string().required("Image is Required"),
+  name: yup.string().required("Tên danh mục chưa nhập"),
+  image: yup.string().required("Điền thông tin ảnh"),
 });
 const Addcat = () => {
   const dispatch = useDispatch();
@@ -27,6 +27,7 @@ const Addcat = () => {
     isLoading,
     createdCategory,
     categoryName,
+    categoryImage,
     updatedCategory,
     categoryimage,
   } = newCategory;
@@ -39,10 +40,10 @@ const Addcat = () => {
   }, [getPCatId]);
   useEffect(() => {
     if (isSuccess && createdCategory) {
-      toast.success("Category Added Successfullly!");
+      toast.success("Danh mục thêm thành công!");
     }
     if (isSuccess && updatedCategory) {
-      toast.success("Category Updated Successfullly!");
+      toast.success("Danh mục sửa thành công");
       navigate("/admin/list-category");
     }
     if (isError) {
@@ -53,12 +54,12 @@ const Addcat = () => {
     enableReinitialize: true,
     initialValues: {
       name: categoryName || "",
-      image: categoryimage || "",
+      image: categoryImage || "",
     },
     validationSchema: schema,
     onSubmit: (values) => {
       if (getPCatId !== undefined) {
-        const data = { id: getPCatId, pCatData: values };
+        const data = { _id: getPCatId, pCatData: values };
         dispatch(updateAProductCategory(data));
         dispatch(resetState());
       } else {
@@ -73,24 +74,24 @@ const Addcat = () => {
   return (
     <div>
       <h3 className="mb-4  name">
-        {getPCatId !== undefined ? "Edit" : "Add"} Category
+        {getPCatId !== undefined ? "Sửa" : "Thêm"} danh mục
       </h3>
       <div>
         <form action="" onSubmit={formik.handleSubmit}>
           <CustomInput
             type="text"
-            label="Enter Product Category"
+            label="Nhập tên danh mục"
             onChng={formik.handleChange("name")}
             onBlr={formik.handleBlur("name")}
             val={formik.values.name}
-            id="brand"
+            id="name"
           />
           <div className="error">
             {formik.touched.name && formik.errors.name}
           </div>
           <CustomInput
             type="text"
-            label="Enter image Category"
+            label="Nhập ảnh danh mục"
             onChng={formik.handleChange("image")}
             onBlr={formik.handleBlur("image")}
             val={formik.values.image}
@@ -103,7 +104,7 @@ const Addcat = () => {
             className="btn btn-success border-0 rounded-3 my-5"
             type="submit"
           >
-            {getPCatId !== undefined ? "Edit" : "Add"} Category
+            {getPCatId !== undefined ? "Sửa" : "Thêm"} danh mục
           </button>
         </form>
       </div>

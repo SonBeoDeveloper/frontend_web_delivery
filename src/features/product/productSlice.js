@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, createAction } from "@reduxjs/toolkit";
 import productService from "./productService";
-
+import { toast } from "react-toastify";
 export const getProducts = createAsyncThunk(
   "product/get-products",
   async (thunkAPI) => {
@@ -11,12 +11,21 @@ export const getProducts = createAsyncThunk(
     }
   }
 );
-
+export const getTopProducts = createAsyncThunk(
+  "product/get-Top-products",
+  async (thunkAPI) => {
+    try {
+      return await productService.getTopProducts();
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
 export const deleteAProduct = createAsyncThunk(
   "product/delete-product",
-  async (id, thunkAPI) => {
+  async (_id, thunkAPI) => {
     try {
-      return await productService.deleteProduct(id);
+      return await productService.deleteProduct(_id);
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }
@@ -24,9 +33,9 @@ export const deleteAProduct = createAsyncThunk(
 );
 export const getAProduct = createAsyncThunk(
   "product/get-product",
-  async (id, thunkAPI) => {
+  async (_id, thunkAPI) => {
     try {
-      return await productService.getProduct(id);
+      return await productService.getProduct(_id);
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }
@@ -35,6 +44,7 @@ export const getAProduct = createAsyncThunk(
 export const updateAProduct = createAsyncThunk(
   "product/update-product",
   async (product, thunkAPI) => {
+    console.log(product);
     try {
       return await productService.updateProduct(product);
     } catch (error) {
@@ -42,13 +52,37 @@ export const updateAProduct = createAsyncThunk(
     }
   }
 );
+export const exportProductsAction = createAsyncThunk(
+  "products/export",
+  async (thunkAPI) => {
+    try {
+      const response = await productService.exportProducts();
+      toast.success("Xuất Excel thành công!");
+      return response;
+    } catch (error) {
+      toast.error("Xuất Excel thất bại. Vui lòng thử lại!");
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
+export const exportOrdersAction = createAsyncThunk(
+  "products/exportOrder",
+  async (id, thunkAPI) => {
+    try {
+      const response = await productService.exportOrder(id);
+      toast.success("Xuất Excel thành công!");
+      return response;
+    } catch (error) {
+      toast.error("Xuất Excel thất bại. Vui lòng thử lại!");
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
 export const createProducts = createAsyncThunk(
-  "product/create",
+  "product/create-product",
   async (productData, thunkAPI) => {
     try {
-      console.log(productData);
-      const response = await productService.createProduct(productData);
-      return response.data;
+      return await productService.createProduct(productData);
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }
@@ -57,6 +91,7 @@ export const createProducts = createAsyncThunk(
 export const resetState = createAction("Reset_all");
 
 const initialState = {
+  topProduct: [],
   products: [],
   isError: false,
   isLoading: false,
@@ -79,6 +114,21 @@ export const productSlice = createSlice({
         state.products = action.payload;
       })
       .addCase(getProducts.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+        state.message = action.error;
+      })
+      .addCase(getTopProducts.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getTopProducts.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = true;
+        state.topProduct = action.payload;
+      })
+      .addCase(getTopProducts.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.isSuccess = false;
@@ -121,11 +171,11 @@ export const productSlice = createSlice({
         state.isLoading = false;
         state.isError = false;
         state.isSuccess = true;
-        state.productName = action.payload[0].name;
-        state.productDescription = action.payload[0].description;
-        state.productPrice = action.payload[0].price;
-        state.productCategory = action.payload[0].category;
-        state.productImages = action.payload[0].images;
+        state.productName = action.payload.name;
+        state.productDescription = action.payload.description;
+        state.productPrice = action.payload.price;
+        state.productCategory = action.payload.category;
+        state.productImages = action.payload.images;
       })
       .addCase(getAProduct.rejected, (state, action) => {
         state.isLoading = false;
@@ -147,6 +197,36 @@ export const productSlice = createSlice({
         state.productImages = action.payload[0].images;
       })
       .addCase(updateAProduct.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+        state.message = action.error;
+      })
+      .addCase(exportProductsAction.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(exportProductsAction.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = true;
+        state.exportPath = action.payload.path;
+      })
+      .addCase(exportProductsAction.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+        state.message = action.error;
+      })
+      .addCase(exportOrdersAction.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(exportOrdersAction.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = true;
+        state.exportPath = action.payload.path;
+      })
+      .addCase(exportOrdersAction.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.isSuccess = false;

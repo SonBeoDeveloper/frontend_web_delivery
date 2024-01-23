@@ -7,25 +7,38 @@ const getProducts = async () => {
 
   return response.data.data;
 };
-const updateProduct = async (product) => {
-  const response = await axios.put(
-    `${base_url}product/update/${product.id}`,
-    {
-      name: product.ProductData.name,
-      description: product.ProductData.expiry,
-      price: product.ProductData.discount,
-      category: product.ProductData.category,
-      images: product.ProductData.images,
-    },
-    config
-  );
+const exportProducts = async () => {
+  const response = await axios.get(`${base_url}product/export`);
 
   return response.data;
 };
-const getProduct = async (id) => {
-  const response = await axios.get(`${base_url}product/${id}`, config);
+const exportOrder = async (id) => {
+  const response = await axios.get(`${base_url}user/exportOrder/${id}`, config);
 
   return response.data;
+};
+const getTopProducts = async () => {
+  const response = await axios.get(`${base_url}product/top-products`, config);
+
+  return response.data;
+};
+const updateProduct = async (product) => {
+  const response = await axios.put(
+    `${base_url}product/update/${product._id}`,
+    {
+      name: product.productData.name,
+      description: product.productData.description,
+      price: product.productData.price,
+      category: product.productData.category,
+      images: product.productData.images,
+    },
+    config
+  );
+  return response.data;
+};
+const getProduct = async (_id) => {
+  const response = await axios.get(`${base_url}product/${_id}`, config);
+  return response.data.data;
 };
 const createProduct = async (product) => {
   const response = await axios.post(
@@ -35,8 +48,8 @@ const createProduct = async (product) => {
   );
   return response.data;
 };
-const deleteProduct = async (id) => {
-  const response = await axios.delete(`${base_url}product/${id}`, config);
+const deleteProduct = async (_id) => {
+  const response = await axios.delete(`${base_url}product/${_id}`, config);
   return response.data;
 };
 const productService = {
@@ -44,7 +57,10 @@ const productService = {
   createProduct,
   updateProduct,
   getProduct,
+  getTopProducts,
+  exportProducts,
   deleteProduct,
+  exportOrder,
 };
 
 export default productService;
